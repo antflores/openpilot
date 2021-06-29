@@ -26,6 +26,7 @@ def calc_cruise_offset(offset, speed):
 def get_can_signals(CP, gearbox_msg="GEARBOX"):
   # this function generates lists for signal, messages and initial values
   signals = [
+    ("ENGINE_RPM", "POWERTRAIN_DATA", 0),
     ("XMISSION_SPEED", "ENGINE_DATA", 0),
     ("WHEEL_SPEED_FL", "WHEEL_SPEEDS", 0),
     ("WHEEL_SPEED_FR", "WHEEL_SPEEDS", 0),
@@ -233,7 +234,8 @@ class CarState(CarStateBase):
     self.cruise_setting = 0
     self.v_cruise_pcm_prev = 0
     self.cruise_mode = 0
-    
+    self.engineRPM = 0
+
   def update(self, cp, cp_cam, cp_body):
     ret = car.CarState.new_message()
 
@@ -273,12 +275,6 @@ class CarState(CarStateBase):
     ret.wheelSpeeds.rl = cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RL"] * CV.KPH_TO_MS * speed_factor
     ret.wheelSpeeds.rr = cp.vl["WHEEL_SPEEDS"]["WHEEL_SPEED_RR"] * CV.KPH_TO_MS * speed_factor
     v_wheel = (ret.wheelSpeeds.fl + ret.wheelSpeeds.fr + ret.wheelSpeeds.rl + ret.wheelSpeeds.rr)/4.
-    
-    self.FL_wheelTick = cp.vl["WHEEL_TICKS"]['WHEEL_TICK_FL']
-    self.FR_wheelTick = cp.vl["WHEEL_TICKS"]['WHEEL_TICK_FR']
-    self.RL_wheelTick = cp.vl["WHEEL_TICKS"]['WHEEL_TICK_RL']
-    self.RR_wheelTick = cp.vl["WHEEL_TICKS"]['WHEEL_TICK_RR']
-    self.avg_wheelTick = (self.FL_wheelTick + self.FR_wheelTick + self.RL_wheelTick + self.RR_wheelTick) / 4.
 
     # blend in transmission speed at low speed, since it has more low speed accuracy
     v_weight = interp(v_wheel, v_weight_bp, v_weight_v)
@@ -300,6 +296,7 @@ class CarState(CarStateBase):
     self.rightBlinkerOn = cp.vl["SCM_FEEDBACK"]["RIGHT_BLINKER"] != 0
 
     self.brake_hold = cp.vl["VSA_STATUS"]["BRAKE_HOLD_ACTIVE"]
+    self.engineRPM = cp.vl["POWERTRAIN_DATA"]["ENGINE_RPM"]
 
     if self.CP.carFingerprint in (CAR.CIVIC, CAR.ODYSSEY, CAR.CRV_5G, CAR.ACCORD, CAR.ACCORDH, CAR.CIVIC_BOSCH,
                                   CAR.CIVIC_BOSCH_DIESEL, CAR.CRV_HYBRID, CAR.INSIGHT, CAR.ACURA_RDX_3G):
